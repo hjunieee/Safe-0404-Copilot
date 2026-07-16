@@ -1,11 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Typography, Card, CardContent, Divider, TextField, Button, Paper, CircularProgress } from '@mui/material';
+import {
+  Box, Typography, TextField, IconButton, Paper,
+  CircularProgress, Chip, Card, CardContent, Divider,
+} from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import SendIcon from '@mui/icons-material/Send';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import ShieldIcon from '@mui/icons-material/Shield';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import LocalPhoneIcon from '@mui/icons-material/LocalPhone';
-import SendIcon from '@mui/icons-material/Send';
 import { askAiChat } from '../utils/apiClient';
 
 interface BrandingIntroProps {
@@ -17,285 +22,92 @@ interface ChatMessage {
   text: string;
 }
 
-export const BrandingIntro: React.FC<BrandingIntroProps> = ({ countryCode }) => {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputValue, setInputValue] = useState<string>('');
-  const [loading, setLoading] = useState<boolean>(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // 초기 웰컴 메시지 세팅
-  useEffect(() => {
-    setMessages([
-      {
-        sender: 'bot',
-        text: `안녕하세요! 대한민국 외교부 가상 안전 조력 비서 **0404 AI**입니다. 
-현재 계신 국가인 **${countryCode}**에 관한 치안/의료 정보, 안전공지 내용 또는 여권 분실, 지진 대피 등 응급 대처법에 대해 질문해 주세요.
-(네트워크 차단 시에는 기기 내 백업된 로컬 매뉴얼로 페일오버 작동합니다.)`
-      }
-    ]);
-  }, [countryCode]);
-
-  // 대화 스크롤 하단 고정
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, loading]);
-
-  // 전송 처리
-  const handleSend = async () => {
-    if (!inputValue.trim() || loading) return;
-
-    const userMsg = inputValue;
-    setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
-    setInputValue('');
-    setLoading(true);
-
-    try {
-      const response = await askAiChat({
-        message: userMsg,
-        countryCode: countryCode
-      });
-      setMessages(prev => [...prev, { sender: 'bot', text: response.answer }]);
-    } catch (e) {
-      console.error('채팅 에러', e);
-      setMessages(prev => [
-        ...prev,
-        { sender: 'bot', text: '죄송합니다. 현재 AI 챗봇 연결이 원활하지 않습니다. 통신 환경을 재차 점검해 주시기 바랍니다.' }
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+/* ───────── 알아보기 페이지 ───────── */
+const AiAboutPage: React.FC<{ onBack: () => void }> = ({ onBack }) => {
+  const features = [
+    {
+      icon: <ShieldIcon />,
+      color: 'primary' as const,
+      title: '오답 없는 RAG 아키텍처',
+      desc: '범용 AI의 할루시네이션 위험을 원천 차단합니다. 오직 외교부 공식 안전 규정 및 대사관 연락처 DB 내에서만 지침을 생성해 절대적 신뢰도를 확보합니다.',
+    },
+    {
+      icon: <WifiOffIcon />,
+      color: 'error' as const,
+      title: '통신 두절 대비 오프라인 페일오버',
+      desc: '재난으로 인터넷망이 단절되어도 앱은 멈추지 않습니다. 관련 국가 연락처와 대처법을 IndexedDB에 백그라운드 캐싱하여, 오프라인에서도 즉시 활용 가능합니다.',
+    },
+    {
+      icon: <TouchAppIcon />,
+      color: 'success' as const,
+      title: '인체공학적 제로 프롬프트 UI',
+      desc: '극도의 패닉 상태에서는 텍스트 정밀 입력이 불가능합니다. 한 손 터치와 체크리스트 조립만으로 다국어 의료 문서를 즉시 완성하도록 설계했습니다.',
+    },
+  ];
 
   return (
-    <Box sx={{ pb: 6 }}>
-      {/* 타이틀 및 헤더 */}
-      <Box sx={{ mb: 4, textAlign: 'center' }}>
-        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
-          <Box
-            sx={{
-              p: 2,
-              borderRadius: '50%',
-              backgroundColor: 'primary.light',
-              color: 'primary.main',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <AutoAwesomeIcon sx={{ fontSize: 40 }} />
-          </Box>
-        </Box>
-        <Typography variant="h2" sx={{ fontWeight: 800, mb: 1 }}>
-          0404 AI 1:1 긴급 대화방
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          외교부 공식 안전 지식 데이터베이스 기반 오답률 0%의 AI RAG 헬프데스크
+    <Box sx={{ pb: 4 }}>
+      {/* 헤더 */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+        <IconButton onClick={onBack} size="small" sx={{ color: 'text.primary' }}>
+          <ArrowBackIcon />
+        </IconButton>
+        <Typography variant="h3" sx={{ fontWeight: 800 }}>
+          0404 AI 알아보기
         </Typography>
       </Box>
 
-      {/* 실시간 라이브 챗봇 UI */}
-      <Card sx={{ mb: 4, overflow: 'hidden', border: '1px solid #E1E2EC', borderRadius: 4 }}>
-        <Box sx={{ px: 2, py: 1.8, backgroundColor: 'primary.main', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: 1 }}>
-          <AutoAwesomeIcon />
-          <Typography variant="body1" sx={{ fontWeight: 700 }}>
-            0404 AI 라이브 도우미 (국가: {countryCode})
+      {/* 왜 0404인가 */}
+      <Card sx={{ mb: 3, borderLeft: '4px solid', borderLeftColor: 'primary.main', borderRadius: 2 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+            <LocalPhoneIcon color="primary" />
+            <Typography variant="body1" sx={{ fontWeight: 700 }}>왜 '0404' 인가요?</Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
+            해외 위기 상황에서 가장 먼저 찾아야 하는 번호는 외교부 영사콜센터{' '}
+            <strong>02-3210-0404</strong>입니다.
+            <br /><br />
+            <strong>0404 AI</strong>는 이 번호에서 영감을 얻어, 낯선 이국땅에서도 대한민국 정부가
+            언제나 곁에 있다는 심리적 신뢰와 든든함을 제공하기 위해 탄생했습니다.
           </Typography>
-        </Box>
-        <CardContent sx={{ p: 0 }}>
-          {/* 메시지 영역 */}
-          <Box sx={{ height: 350, overflowY: 'auto', p: 2, backgroundColor: '#FAF9FB', display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {messages.map((msg, idx) => (
-              <Box
-                key={idx}
-                sx={{
-                  display: 'flex',
-                  justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                }}
-              >
-                <Paper
-                  elevation={0}
+        </CardContent>
+      </Card>
+
+      {/* 3대 기술 지향성 */}
+      <Typography variant="h3" sx={{ mb: 2, fontWeight: 800 }}>3대 기술 지향성</Typography>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mb: 4 }}>
+        {features.map((item) => (
+          <Card key={item.title} sx={{ borderRadius: 2 }}>
+            <CardContent sx={{ p: 2.5 }}>
+              <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                <Box
                   sx={{
-                    p: 2,
-                    maxWidth: '85%',
-                    borderRadius: msg.sender === 'user' ? '16px 16px 0 16px' : '16px 16px 16px 0',
-                    backgroundColor: msg.sender === 'user' ? 'primary.main' : '#FFFFFF',
-                    color: msg.sender === 'user' ? '#FFFFFF' : 'text.primary',
-                    border: msg.sender === 'user' ? 'none' : '1px solid #E1E2EC',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                    p: 1.2,
+                    borderRadius: 2,
+                    bgcolor: `${item.color}.light`,
+                    color: `${item.color}.main`,
+                    display: 'flex',
+                    flexShrink: 0,
                   }}
                 >
-                  <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.5, fontWeight: 500 }}>
-                    {msg.text}
+                  {item.icon}
+                </Box>
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: 700, mb: 0.5 }}>
+                    {item.title}
                   </Typography>
-                </Paper>
-              </Box>
-            ))}
-            {loading && (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
-                <CircularProgress size={16} color="primary" />
-                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
-                  답변을 구상하는 중...
-                </Typography>
-              </Box>
-            )}
-            <div ref={chatEndRef} />
-          </Box>
-
-          <Divider />
-
-          {/* 입력창 */}
-          <Box sx={{ p: 1.5, display: 'flex', gap: 1, backgroundColor: '#FFFFFF' }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="여권 분실 대처법이나 현지 치안에 대해 물어보세요..."
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleSend();
-              }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: 3,
-                }
-              }}
-            />
-            <Button
-              variant="contained"
-              onClick={handleSend}
-              sx={{ minWidth: 50, px: 2, borderRadius: 3 }}
-            >
-              <SendIcon fontSize="small" />
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {/* 0404 숫자의 의미 */}
-      <Card sx={{ mb: 4, borderLeft: '6px solid #0A56A6', borderRadius: 2 }}>
-        <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
-            <LocalPhoneIcon color="primary" />
-            <Typography variant="body1" sx={{ fontWeight: 700 }}>
-              왜 '0404' 인가요?
-            </Typography>
-          </Box>
-          <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
-            해외에서 예기치 못한 위기 상황에 처했을 때 가장 먼저 찾아야 하는 번호는 외교부 영사콜센터 핫라인인 <strong>02-3210-0404</strong>입니다.
-            <br />
-            <br />
-            <strong>0404 AI</strong>는 이 상징적인 번호에서 영감을 얻어, 낯선 환경에서도 대한민국 정부가 언제나 곁에서 생명줄을 이어주고 있다는 심리적 신뢰와 든든함을 제공하고자 탄생했습니다.
-          </Typography>
-        </CardContent>
-      </Card>
-
-      {/* 3대 핵심 가치 */}
-      <Typography variant="h3" sx={{ mb: 2, fontWeight: 800 }}>
-        0404 AI 3대 기술 지향성
-      </Typography>
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
-        
-        {/* 가치 1: RAG 신뢰성 */}
-        <Card>
-          <CardContent sx={{ p: 2.5 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 2 }}>
-              <Box
-                sx={{
-                  p: 1.2,
-                  borderRadius: 3,
-                  backgroundColor: 'primary.light',
-                  color: 'primary.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <ShieldIcon sx={{ fontSize: 24 }} />
-              </Box>
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                    오답 없는 RAG 아키텍처
+                  <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.6 }}>
+                    {item.desc}
                   </Typography>
                 </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-                  범용 AI가 지닌 치명적인 오정보(할루시네이션) 위험을 철저히 극복합니다. 오직 검색(Retrieval)된 <strong>외교부 공식 안전 규정 및 대사관 연락처</strong> 데이터베이스 내에서만 AI가 지침을 생성하여 절대적인 신뢰도를 갖춥니다.
-                </Typography>
               </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        {/* 가치 2: 오프라인 페일오버 */}
-        <Card>
-          <CardContent sx={{ p: 2.5 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 2 }}>
-              <Box
-                sx={{
-                  p: 1.2,
-                  borderRadius: 3,
-                  backgroundColor: 'error.light',
-                  color: 'error.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <WifiOffIcon sx={{ fontSize: 24 }} />
-              </Box>
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                    통신 두절 대비 오프라인 페일오버
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-                  재난 등으로 인터넷망이 단절되더라도 앱이 마비되지 않습니다. 네트워크 연결이 정상인 시점에 관련 국가의 연락처와 대처법을 <strong>IndexedDB에 백그라운드 캐싱</strong>하여, 오프라인 시에도 즉시 활용 가능한 하이브리드 로직을 완성했습니다.
-                </Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
-        {/* 가치 3: 제로 프롬프트 */}
-        <Card>
-          <CardContent sx={{ p: 2.5 }}>
-            <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-start', gap: 2 }}>
-              <Box
-                sx={{
-                  p: 1.2,
-                  borderRadius: 3,
-                  backgroundColor: 'success.light',
-                  color: 'success.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <TouchAppIcon sx={{ fontSize: 24 }} />
-              </Box>
-              <Box>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                  <Typography variant="body1" sx={{ fontWeight: 700 }}>
-                    인체공학적 제로 프롬프트 UI
-                  </Typography>
-                </Box>
-                <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-                  사용자가 극도로 혼란스러운 패닉 상태일 때 텍스트를 정밀 입력하는 것은 불가능합니다. 한 손 터치와 부위별 체크리스트 조립으로 원하는 모든 결과물을 얻을 수 있도록 사용자 경험을 정교하게 깎아냈습니다.
-                </Typography>
-              </Box>
-            </Box>
-          </CardContent>
-        </Card>
-
+            </CardContent>
+          </Card>
+        ))}
       </Box>
 
-      <Divider sx={{ my: 4 }} />
-
-      {/* 브랜드 철학 문구 */}
+      <Divider sx={{ my: 3 }} />
       <Box sx={{ textAlign: 'center', px: 2 }}>
         <Typography variant="body2" color="primary.main" sx={{ fontWeight: 700, mb: 1 }}>
           "낯선 이국의 거친 환경 속에서도, 대한민국 영사의 보호는 계속됩니다."
@@ -303,6 +115,253 @@ export const BrandingIntro: React.FC<BrandingIntroProps> = ({ countryCode }) => 
         <Typography variant="caption" color="text.secondary">
           Safe 0404 Copilot은 대한민국 재외국민의 안전을 위한 지능형 인프라 기술을 선도합니다.
         </Typography>
+      </Box>
+    </Box>
+  );
+};
+
+/* ───────── 메인 채팅 페이지 ───────── */
+export const BrandingIntro: React.FC<BrandingIntroProps> = ({ countryCode }) => {
+  const [view, setView] = useState<'chat' | 'about'>('chat');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // 초기 웰컴 메시지 (마운트 1회만)
+  const initialized = useRef(false);
+  useEffect(() => {
+    if (initialized.current) return;
+    initialized.current = true;
+    setMessages([
+      {
+        sender: 'bot',
+        text: `안녕하세요! 대한민국 외교부 가상 안전 조력 비서 0404 AI입니다.\n\n현재 국가 [${countryCode}]에 관한 치안·의료 정보, 안전공지, 여권 분실 대처, 지진 대피 등 응급 상황에 대해 자유롭게 질문해 주세요.\n\n(오프라인 시 기기 내 로컬 캐시로 자동 전환됩니다.)`,
+      },
+    ]);
+  }, [countryCode]);
+
+  // 새 메시지 전송 시에만 스크롤 (초기 마운트 시 점프 방지)
+  const messageCount = useRef(0);
+  useEffect(() => {
+    const current = messages.length + (loading ? 1 : 0);
+    if (current > messageCount.current) {
+      messageCount.current = current;
+      // 첫 번째 웰컴 메시지는 스크롤하지 않음
+      if (messages.length > 1 || loading) {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+      }
+    }
+  }, [messages, loading]);
+
+  const handleSend = async () => {
+    if (!inputValue.trim() || loading) return;
+    const userMsg = inputValue;
+    setMessages((prev) => [...prev, { sender: 'user', text: userMsg }]);
+    setInputValue('');
+    setLoading(true);
+    try {
+      const response = await askAiChat({ message: userMsg, countryCode });
+      setMessages((prev) => [...prev, { sender: 'bot', text: response.answer }]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        { sender: 'bot', text: '죄송합니다. 현재 AI 연결이 원활하지 않습니다. 통신 환경을 재차 점검해 주세요.' },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (view === 'about') {
+    return <AiAboutPage onBack={() => setView('chat')} />;
+  }
+
+  return (
+    /* 하단 입력 바(~58px) + BottomNavigation(68px) 공간 확보 */
+    <Box sx={{ pb: '70px' }}>
+
+      {/* 채팅 헤더 행 */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          mb: 2.5,
+        }}
+      >
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2 }}>
+          <Box
+            sx={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              bgcolor: 'primary.main',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <AutoAwesomeIcon sx={{ fontSize: 18, color: '#fff' }} />
+          </Box>
+          <Box>
+            <Typography variant="body1" sx={{ fontWeight: 700, lineHeight: 1.1 }}>
+              0404 AI
+            </Typography>
+            <Typography variant="caption" sx={{ color: '#2E7D32', fontWeight: 600 }}>
+              ● 온라인
+            </Typography>
+          </Box>
+        </Box>
+
+        {/* 알아보기 버튼 */}
+        <Chip
+          icon={<InfoOutlinedIcon sx={{ fontSize: '0.9rem !important' }} />}
+          label="알아보기"
+          size="small"
+          variant="outlined"
+          onClick={() => setView('about')}
+          sx={{ fontWeight: 600, cursor: 'pointer', borderRadius: '20px' }}
+        />
+      </Box>
+
+      {/* 메시지 목록 */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+        {messages.map((msg, idx) => (
+          <Box
+            key={idx}
+            sx={{
+              display: 'flex',
+              justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+              alignItems: 'flex-end',
+              gap: 1,
+            }}
+          >
+            {/* 봇 아바타 */}
+            {msg.sender === 'bot' && (
+              <Box
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: '50%',
+                  bgcolor: 'primary.main',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                  mb: 0.5,
+                }}
+              >
+                <AutoAwesomeIcon sx={{ fontSize: 13, color: '#fff' }} />
+              </Box>
+            )}
+
+            {/* 말풍선 — M3 bubble radius */}
+            <Paper
+              elevation={0}
+              sx={{
+                px: 2,
+                py: 1.2,
+                maxWidth: '80%',
+                borderRadius:
+                  msg.sender === 'user'
+                    ? '20px 20px 4px 20px'   // 사용자: 우하단 꺾임
+                    : '20px 20px 20px 4px',  // 봇: 좌하단 꺾임
+                bgcolor: msg.sender === 'user' ? 'primary.main' : '#EEF1FF',
+                color: msg.sender === 'user' ? '#fff' : 'text.primary',
+              }}
+            >
+              <Typography
+                variant="body2"
+                sx={{ whiteSpace: 'pre-line', lineHeight: 1.65, fontWeight: 500 }}
+              >
+                {msg.text}
+              </Typography>
+            </Paper>
+          </Box>
+        ))}
+
+        {/* 로딩 표시 */}
+        {loading && (
+          <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 1 }}>
+            <Box
+              sx={{
+                width: 28, height: 28, borderRadius: '50%', bgcolor: 'primary.main',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}
+            >
+              <AutoAwesomeIcon sx={{ fontSize: 13, color: '#fff' }} />
+            </Box>
+            <Paper
+              elevation={0}
+              sx={{ px: 2, py: 1.2, borderRadius: '20px 20px 20px 4px', bgcolor: '#EEF1FF' }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
+                <CircularProgress size={12} color="primary" />
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  답변 생성 중...
+                </Typography>
+              </Box>
+            </Paper>
+          </Box>
+        )}
+      </Box>
+
+      {/* 고정 입력 바 — BottomNavigation(68px) 바로 위 */}
+      <Box
+        sx={{
+          position: 'fixed',
+          bottom: 68,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: '480px',
+          px: 2,
+          py: 1,
+          bgcolor: 'background.paper',
+          borderTop: '1px solid #E1E2EC',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          zIndex: 99,
+        }}
+      >
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="여권 분실, 현지 치안, 응급 대처법 등을 물어보세요..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: '24px',
+              backgroundColor: '#F4F4F8',
+              '& fieldset': { border: 'none' },
+            },
+          }}
+        />
+        <IconButton
+          onClick={handleSend}
+          disabled={loading || !inputValue.trim()}
+          sx={{
+            bgcolor: 'primary.main',
+            color: '#fff',
+            borderRadius: '50%',
+            width: 40,
+            height: 40,
+            flexShrink: 0,
+            '&:hover': { bgcolor: 'primary.dark' },
+            '&.Mui-disabled': { bgcolor: '#E1E2EC', color: '#9E9E9E' },
+          }}
+        >
+          <SendIcon sx={{ fontSize: 18 }} />
+        </IconButton>
       </Box>
     </Box>
   );
