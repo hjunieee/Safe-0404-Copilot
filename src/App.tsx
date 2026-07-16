@@ -92,15 +92,21 @@ function App() {
         </Box>
       )}
 
-      {/* 최상단 앱바 */}
+      {/* 최상단 앱바 - 스크롤 시에도 상단 고정 */}
       <Box
         sx={{
+          position: 'fixed',
+          top: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: '480px',
           py: 2,
           px: 3,
           backgroundColor: 'background.paper',
           borderBottom: '1px solid #E1E2EC',
           textAlign: 'center',
-          flexShrink: 0,
+          zIndex: 100,
         }}
       >
         <Typography variant="h3" sx={{ fontWeight: 800, letterSpacing: '-0.5px' }}>
@@ -113,8 +119,8 @@ function App() {
         sx={{
           flexGrow: 1,
           px: 2.5,
-          pt: 3,
-          pb: 12, /* fixed BottomNavigation 높이만큼 하단 여백 확보 */
+          pt: '88px', /* fixed 헤더 높이(약 72px) + 여유 여백 */
+          pb: '88px', /* fixed BottomNavigation 높이만큼 하단 여백 확보 */
         }}
       >
         {tabValue === 0 && currentCountry && (
