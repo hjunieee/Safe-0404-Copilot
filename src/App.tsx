@@ -8,7 +8,7 @@ import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
 import SignalWifiOffIcon from '@mui/icons-material/SignalWifiOff';
-import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
 import { theme } from './theme';
 import { Dashboard } from './components/Dashboard';
 import type { CountryData } from './components/Dashboard';
@@ -154,7 +154,7 @@ function App() {
       return (
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', py: 10, px: 3, gap: 2 }}>
           <Box sx={{ p: 2.5, borderRadius: '50%', bgcolor: '#FEECEC', color: '#D32F2F', display: 'flex' }}>
-            <ErrorOutlineIcon sx={{ fontSize: 44 }} />
+            <CloudOffIcon sx={{ fontSize: 44 }} />
           </Box>
           <Typography variant="h3" sx={{ fontWeight: 800 }}>서버 연결 실패</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.7 }}>
