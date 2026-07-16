@@ -1,14 +1,73 @@
-import React from 'react';
-import { Box, Typography, Card, CardContent, Divider } from '@mui/material';
+import React, { useState, useRef, useEffect } from 'react';
+import { Box, Typography, Card, CardContent, Divider, TextField, Button, Paper, CircularProgress } from '@mui/material';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import ShieldIcon from '@mui/icons-material/Shield';
 import WifiOffIcon from '@mui/icons-material/WifiOff';
 import TouchAppIcon from '@mui/icons-material/TouchApp';
 import LocalPhoneIcon from '@mui/icons-material/LocalPhone';
+import SendIcon from '@mui/icons-material/Send';
+import { askAiChat } from '../utils/apiClient';
 
-export const BrandingIntro: React.FC = () => {
+interface BrandingIntroProps {
+  countryCode: string;
+}
+
+interface ChatMessage {
+  sender: 'user' | 'bot';
+  text: string;
+}
+
+export const BrandingIntro: React.FC<BrandingIntroProps> = ({ countryCode }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // 초기 웰컴 메시지 세팅
+  useEffect(() => {
+    setMessages([
+      {
+        sender: 'bot',
+        text: `안녕하세요! 대한민국 외교부 가상 안전 조력 비서 **0404 AI**입니다. 
+현재 계신 국가인 **${countryCode}**에 관한 치안/의료 정보, 안전공지 내용 또는 여권 분실, 지진 대피 등 응급 대처법에 대해 질문해 주세요.
+(네트워크 차단 시에는 기기 내 백업된 로컬 매뉴얼로 페일오버 작동합니다.)`
+      }
+    ]);
+  }, [countryCode]);
+
+  // 대화 스크롤 하단 고정
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, loading]);
+
+  // 전송 처리
+  const handleSend = async () => {
+    if (!inputValue.trim() || loading) return;
+
+    const userMsg = inputValue;
+    setMessages(prev => [...prev, { sender: 'user', text: userMsg }]);
+    setInputValue('');
+    setLoading(true);
+
+    try {
+      const response = await askAiChat({
+        message: userMsg,
+        countryCode: countryCode
+      });
+      setMessages(prev => [...prev, { sender: 'bot', text: response.answer }]);
+    } catch (e) {
+      console.error('채팅 에러', e);
+      setMessages(prev => [
+        ...prev,
+        { sender: 'bot', text: '죄송합니다. 현재 AI 챗봇 연결이 원활하지 않습니다. 통신 환경을 재차 점검해 주시기 바랍니다.' }
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <Box sx={{ pb: 4 }}>
+    <Box sx={{ pb: 6 }}>
       {/* 타이틀 및 헤더 */}
       <Box sx={{ mb: 4, textAlign: 'center' }}>
         <Box sx={{ display: 'flex', justifyContent: 'center', mb: 1 }}>
@@ -27,15 +86,93 @@ export const BrandingIntro: React.FC = () => {
           </Box>
         </Box>
         <Typography variant="h2" sx={{ fontWeight: 800, mb: 1 }}>
-          0404 AI 브랜드 스토리
+          0404 AI 1:1 긴급 대화방
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          외교부 영사 조력 시스템의 신뢰성과 첨단 AI 기술이 결합된 독창적인 재외국민 안전 플랫폼
+          외교부 공식 안전 지식 데이터베이스 기반 오답률 0%의 AI RAG 헬프데스크
         </Typography>
       </Box>
 
+      {/* 실시간 라이브 챗봇 UI */}
+      <Card sx={{ mb: 4, overflow: 'hidden', border: '1px solid #E1E2EC', borderRadius: 4 }}>
+        <Box sx={{ px: 2, py: 1.8, backgroundColor: 'primary.main', color: '#FFFFFF', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <AutoAwesomeIcon />
+          <Typography variant="body1" sx={{ fontWeight: 700 }}>
+            0404 AI 라이브 도우미 (국가: {countryCode})
+          </Typography>
+        </Box>
+        <CardContent sx={{ p: 0 }}>
+          {/* 메시지 영역 */}
+          <Box sx={{ height: 350, overflowY: 'auto', p: 2, backgroundColor: '#FAF9FB', display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {messages.map((msg, idx) => (
+              <Box
+                key={idx}
+                sx={{
+                  display: 'flex',
+                  justifyContent: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                }}
+              >
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    maxWidth: '85%',
+                    borderRadius: msg.sender === 'user' ? '16px 16px 0 16px' : '16px 16px 16px 0',
+                    backgroundColor: msg.sender === 'user' ? 'primary.main' : '#FFFFFF',
+                    color: msg.sender === 'user' ? '#FFFFFF' : 'text.primary',
+                    border: msg.sender === 'user' ? 'none' : '1px solid #E1E2EC',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                  }}
+                >
+                  <Typography variant="body2" sx={{ whiteSpace: 'pre-line', lineHeight: 1.5, fontWeight: 500 }}>
+                    {msg.text}
+                  </Typography>
+                </Paper>
+              </Box>
+            ))}
+            {loading && (
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pl: 1 }}>
+                <CircularProgress size={16} color="primary" />
+                <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 600 }}>
+                  답변을 구상하는 중...
+                </Typography>
+              </Box>
+            )}
+            <div ref={chatEndRef} />
+          </Box>
+
+          <Divider />
+
+          {/* 입력창 */}
+          <Box sx={{ p: 1.5, display: 'flex', gap: 1, backgroundColor: '#FFFFFF' }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="여권 분실 대처법이나 현지 치안에 대해 물어보세요..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleSend();
+              }}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: 3,
+                }
+              }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleSend}
+              sx={{ minWidth: 50, px: 2, borderRadius: 3 }}
+            >
+              <SendIcon fontSize="small" />
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
       {/* 0404 숫자의 의미 */}
-      <Card sx={{ mb: 4, borderLeft: '6px solid #0A56A6' }}>
+      <Card sx={{ mb: 4, borderLeft: '6px solid #0A56A6', borderRadius: 2 }}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
             <LocalPhoneIcon color="primary" />

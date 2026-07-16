@@ -1,68 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ThemeProvider, CssBaseline, Box, Typography, BottomNavigation, BottomNavigationAction } from '@mui/material';
 import HomeIcon from '@mui/icons-material/Home';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
+import WifiOffIcon from '@mui/icons-material/WifiOff';
 import { theme } from './theme';
 import { Dashboard } from './components/Dashboard';
 import type { CountryData } from './components/Dashboard';
 import { MedicalCopilot } from './components/MedicalCopilot';
 import { SafetyGuide } from './components/SafetyGuide';
 import { BrandingIntro } from './components/BrandingIntro';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; // 0404 AI 탭 아이콘용
-
-// 국가별 가상 데이터 셋
-const COUNTRIES: CountryData[] = [
-  {
-    name: '일본 (도쿄)',
-    code: 'JP',
-    warningLevel: 1,
-    warningText: '여행유의 (1단계)',
-    police: '110',
-    ambulance: '119',
-    embassy: '+81-3-3452-7611',
-    recentNotice: '오키나와 인근 지진 발생에 따른 쓰나미 여파 주의. 해안가 접근 자제 및 현지 방송 모니터링 요망.',
-  },
-  {
-    name: '프랑스 (파리)',
-    code: 'FR',
-    warningLevel: 2,
-    warningText: '여행자제 (2단계)',
-    police: '17',
-    ambulance: '15',
-    embassy: '+33-1-4753-0101',
-    recentNotice: '파리 시내 시위 발생으로 인파 밀집 지역 방문 자제. 야간 외출 시 개인 소지품 도난 주의.',
-  },
-  {
-    name: '필리핀 (민다나오)',
-    code: 'PH',
-    warningLevel: 3,
-    warningText: '철수권고 (3단계)',
-    police: '911',
-    ambulance: '911',
-    embassy: '+63-2-8856-7188',
-    recentNotice: '민다나오 지역 치안 불안 및 무장단체 활동 지속에 따른 신변 안전 유의. 해당 지역 방문객은 즉시 철수 요망.',
-  },
-  {
-    name: '우크라이나 (키이우)',
-    code: 'UA',
-    warningLevel: 4,
-    warningText: '여행금지 (4단계)',
-    police: '102',
-    ambulance: '103',
-    embassy: '+48-22-742-0300 (주폴란드 대사관 임시대피소)',
-    recentNotice: '우크라이나 전역 여행금지 발령 중. 즉시 안전한 인근 국가로 대피 및 철수 요망. 무단 입국 시 여권법에 의거 처벌 가능.',
-  },
-];
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { fetchCountries } from './utils/apiClient';
 
 function App() {
-  // 상태 변수 정의
-  const [currentCountry, setCurrentCountry] = useState<CountryData>(COUNTRIES[0]);
+  const [countries, setCountries] = useState<CountryData[]>([]);
+  const [currentCountry, setCurrentCountry] = useState<CountryData | null>(null);
   const [tabValue, setTabValue] = useState<number>(0);
+  const [onlineStatus, setOnlineStatus] = useState<boolean>(navigator.onLine);
+
+  // 실시간 온라인 여부 리스닝
+  useEffect(() => {
+    const handleOnline = () => setOnlineStatus(true);
+    const handleOffline = () => setOnlineStatus(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // 국가 정보 실시간 수집 연동
+  useEffect(() => {
+    const loadCountries = async () => {
+      try {
+        const list = await fetchCountries();
+        const mappedList: CountryData[] = list.map(c => ({
+          name: `${c.name} (${c.code})`,
+          code: c.code,
+          warningLevel: c.warningLevel,
+          warningText: c.warningText,
+          police: c.police,
+          ambulance: c.ambulance,
+          embassy: c.embassy,
+          recentNotice: c.recentNotice || '최근 공지 사항이 없습니다.',
+        }));
+        setCountries(mappedList);
+        if (mappedList.length > 0) {
+          const defaultCountry = mappedList.find(c => c.code === 'JP') || mappedList[0];
+          setCurrentCountry(defaultCountry);
+        }
+      } catch (err) {
+        console.error('국가 데이터를 불러오는데 실패했습니다.', err);
+      }
+    };
+    loadCountries();
+  }, [onlineStatus]);
 
   // 국가 변경 핸들러
   const handleCountryChange = (countryName: string) => {
-    const found = COUNTRIES.find((c) => c.name === countryName);
+    const found = countries.find((c) => c.name === countryName);
     if (found) {
       setCurrentCountry(found);
     }
@@ -72,6 +70,28 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       
+      {/* 오프라인 배너 */}
+      {!onlineStatus && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 1,
+            py: 1,
+            backgroundColor: '#FF9800',
+            color: '#FFFFFF',
+            textAlign: 'center',
+            fontSize: '0.875rem',
+            fontWeight: 700,
+            zIndex: 1000,
+          }}
+        >
+          <WifiOffIcon fontSize="small" />
+          네트워크 연결이 끊겼습니다. 안전 모드(로컬 IndexedDB 캐시)로 실행 중입니다.
+        </Box>
+      )}
+
       {/* 최상단 앱바 */}
       <Box
         sx={{
@@ -95,21 +115,25 @@ function App() {
           overflowY: 'auto',
           px: 2.5,
           pt: 3,
-          pb: 10, // 하단 네비게이션 가림 방지 패딩
+          pb: 10,
         }}
       >
-        {tabValue === 0 && (
+        {tabValue === 0 && currentCountry && (
           <Dashboard
             currentCountry={currentCountry}
             onCountryChange={handleCountryChange}
-            countries={COUNTRIES}
+            countries={countries}
           />
         )}
-        {tabValue === 1 && (
-          <MedicalCopilot countryName={currentCountry.name.split(' ')[0]} />
+        {tabValue === 1 && currentCountry && (
+          <MedicalCopilot countryName={currentCountry.code} />
         )}
-        {tabValue === 2 && <SafetyGuide />}
-        {tabValue === 3 && <BrandingIntro />}
+        {tabValue === 2 && currentCountry && (
+          <SafetyGuide countryCode={currentCountry.code} />
+        )}
+        {tabValue === 3 && currentCountry && (
+          <BrandingIntro countryCode={currentCountry.code} />
+        )}
       </Box>
 
       {/* 하단 네비게이션 탭 */}

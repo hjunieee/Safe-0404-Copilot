@@ -11,41 +11,18 @@ import {
   Divider,
   Paper,
   Chip,
+  CircularProgress,
 } from '@mui/material';
 import MedicalInformationIcon from '@mui/icons-material/MedicalInformation';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome'; // AI Sparkle 아이콘
+import { createMedicalCard } from '../utils/apiClient';
+import type { OfflineMedicalCard } from '../utils/localDb';
 
-// 다국어 번역 사전
-interface TranslationMap {
-  [key: string]: {
-    en: string;
-    local: string;
-  };
-}
-
-const SYMPTOM_TRANSLATIONS: TranslationMap = {
-  '두통': { en: 'Headache', local: '頭痛 (Headache) / Céphalée' },
-  '어지러움': { en: 'Dizziness', local: 'めまい (Dizziness) / Vertige' },
-  '의식 저하': { en: 'Altered Consciousness', local: '意識障害 (Altered Consciousness) / Troubles de la conscience' },
-  '언어 장애': { en: 'Speech Difficulty', local: '言語障害 (Speech Difficulty) / Difficulté à parler' },
-  '가슴 통증': { en: 'Chest Pain', local: '胸痛 (Chest Pain) / Douleur thoracique' },
-  '호흡 곤란': { en: 'Difficulty Breathing', local: '呼吸困難 (Difficulty Breathing) / Difficulté respiratoire' },
-  '심한 기침': { en: 'Severe Coughing', local: '激しい咳 (Severe Coughing) / Toux sévère' },
-  '두근거림': { en: 'Palpitations', local: '動悸 (Palpitations) / Palpitations' },
-  '극심한 복통': { en: 'Acute Abdominal Pain', local: '激しい腹痛 (Acute Abdominal Pain) / Douleur abdominale aiguë' },
-  '지속적인 구토': { en: 'Persistent Vomiting', local: '持続的な嘔吐 (Persistent Vomiting) / Vomissements persistants' },
-  '혈변/토혈': { en: 'Blood in Stool/Vomit', local: '血便・吐血 (Blood in Stool/Vomit) / Sang dans les selles/vomissements' },
-  '심한 설사': { en: 'Severe Diarrhea', local: '激しい下痢 (Severe Diarrhea) / Diarrhée sévère' },
-  '골절 의심': { en: 'Suspected Fracture', local: '骨折の疑い (Suspected Fracture) / Suspicion de fracture' },
-  '심한 출혈': { en: 'Severe Bleeding', local: '大出血 (Severe Bleeding) / Hémorragie sévère' },
-  '화상': { en: 'Burns', local: '火傷 (Burns) / Brûlures' },
-  '급성 발진/알레르기': { en: 'Acute Rash/Allergic Reaction', local: '急性発疹・アレルギー (Acute Rash/Allergic Reaction) / Éruption cutanée aiguë' },
-};
-
-const BASE_DISEASE_TRANSLATIONS: TranslationMap = {
+// 기저질환 및 알레르기 체크박스 맵 데이터
+const BASE_DISEASE_TRANSLATIONS: Record<string, { en: string; local: string }> = {
   '당뇨': { en: 'Diabetes', local: '糖尿病 (Diabetes) / Diabète' },
   '고혈압': { en: 'Hypertension', local: '高血圧 (Hypertension) / Hypertension' },
   '심장질환': { en: 'Heart Disease', local: '心臓疾患 (Heart Disease) / Maladie cardiaque' },
@@ -53,7 +30,7 @@ const BASE_DISEASE_TRANSLATIONS: TranslationMap = {
   '없음': { en: 'None', local: '特になし (None) / Aucun' },
 };
 
-const ALLERGY_TRANSLATIONS: TranslationMap = {
+const ALLERGY_TRANSLATIONS: Record<string, { en: string; local: string }> = {
   '항생제': { en: 'Antibiotics Allergy', local: '抗生物질アレルギー (Antibiotics) / Allergie aux antibiotiques' },
   '소염진통제': { en: 'NSAIDs Allergy', local: '消炎鎮痛剤アレルギー (NSAIDs) / Allergie aux AINS' },
   '없음': { en: 'None', local: '特하지 않음 (None) / Aucun' },
@@ -70,6 +47,8 @@ export const MedicalCopilot: React.FC<MedicalCopilotProps> = ({ countryName }) =
   const [selectedDiseases, setSelectedDiseases] = useState<string[]>(['없음']);
   const [selectedAllergies, setSelectedAllergies] = useState<string[]>(['없음']);
   const [showResultCard, setShowResultCard] = useState<boolean>(false);
+  const [medicalCardData, setMedicalCardData] = useState<OfflineMedicalCard | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   // 카테고리 및 세부 증상 데이터
   const symptomCategories = [
@@ -95,15 +74,13 @@ export const MedicalCopilot: React.FC<MedicalCopilotProps> = ({ countryName }) =
     },
   ];
 
-  // 국가별 타겟 현지어 라벨 획득
+  // 국가별 타겟 현지어 라벨 획득 (2자리 국가코드 기준)
   const getLocalLanguageLabel = () => {
     switch (countryName) {
-      case '일본':
+      case 'JP':
         return '日本語 (Japanese)';
-      case '프랑스':
+      case 'FR':
         return 'Français (French)';
-      case '우크라이나':
-        return 'Українська (Ukrainian)';
       default:
         return 'English (범용 영어)';
     }
@@ -144,10 +121,29 @@ export const MedicalCopilot: React.FC<MedicalCopilotProps> = ({ countryName }) =
     });
   };
 
-  // 결과 생성 트리거
-  const handleGenerateCard = () => {
+  // 결과 생성 트리거 (API 호출 연동)
+  const handleGenerateCard = async () => {
     if (selectedSymptoms.length === 0) return;
-    setShowResultCard(true);
+    setLoading(true);
+
+    let targetLanguage = 'EN';
+    if (countryName === 'JP') targetLanguage = 'JA';
+    else if (countryName === 'FR') targetLanguage = 'FR';
+
+    try {
+      const card = await createMedicalCard({
+        patientName: 'KOREAN TRAVELER',
+        symptoms: selectedSymptoms,
+        chronicDiseases: selectedDiseases.filter(d => d !== '없음'),
+        targetLanguage: targetLanguage
+      });
+      setMedicalCardData(card);
+      setShowResultCard(true);
+    } catch (e) {
+      console.error('의료 카드 생성에 실패했습니다.', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // 초기화 및 뒤로 가기
@@ -156,10 +152,22 @@ export const MedicalCopilot: React.FC<MedicalCopilotProps> = ({ countryName }) =
     setSelectedSymptoms([]);
     setSelectedDiseases(['없음']);
     setSelectedAllergies(['없음']);
+    setMedicalCardData(null);
     setShowResultCard(false);
   };
 
-  if (showResultCard) {
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 15, gap: 2 }}>
+        <CircularProgress color="error" size={50} />
+        <Typography variant="body1" color="text.secondary" sx={{ fontWeight: 700 }}>
+          Medical Copilot이 다국어 긴급 진술문을 작성 중입니다...
+        </Typography>
+      </Box>
+    );
+  }
+
+  if (showResultCard && medicalCardData) {
     return (
       <Box sx={{ pb: 4 }}>
         <Button
@@ -184,7 +192,7 @@ export const MedicalCopilot: React.FC<MedicalCopilotProps> = ({ countryName }) =
           {/* AI 생성 안내 배지 */}
           <Chip
             icon={<AutoAwesomeIcon style={{ fontSize: '0.9rem', color: '#FFFFFF' }} />}
-            label="0404 AI"
+            label="0404 AI Copilot"
             size="small"
             color="error"
             sx={{ fontWeight: 700, mb: 2, borderRadius: 2 }}
@@ -218,70 +226,48 @@ export const MedicalCopilot: React.FC<MedicalCopilotProps> = ({ countryName }) =
 
           <Divider sx={{ mb: 3 }} />
 
-          {/* 환자 기본 진단 정보 */}
+          {/* 1. 현지 언어 진술문 */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, mb: 1 }}>
-              [1] SELECTED SYMPTOMS / 호소 증상
+            <Typography variant="body2" color="error.main" sx={{ fontWeight: 800, mb: 1, letterSpacing: '0.5px' }}>
+              [1] LOCAL LANGUAGE / 현지어 진술문 ({getLocalLanguageLabel()})
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-              {selectedSymptoms.map((symptom) => (
-                <Box
-                  key={symptom}
-                  sx={{
-                    p: 1.5,
-                    borderRadius: 2,
-                    backgroundColor: '#FFFFFF',
-                    border: '1px solid #E1E2EC',
-                  }}
-                >
-                  <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                    • {symptom}
-                  </Typography>
-                  <Typography variant="body2" color="primary.main" sx={{ pl: 2, fontWeight: 500 }}>
-                    EN: {SYMPTOM_TRANSLATIONS[symptom]?.en || symptom}
-                  </Typography>
-                  <Typography variant="body2" color="error.main" sx={{ pl: 2, fontWeight: 600 }}>
-                    LOCAL ({getLocalLanguageLabel()}): {SYMPTOM_TRANSLATIONS[symptom]?.local || symptom}
-                  </Typography>
-                </Box>
-              ))}
-            </Box>
+            <Paper sx={{ p: 2, backgroundColor: '#FAF1F1', border: '1px solid', borderColor: 'error.light', borderRadius: 2 }}>
+              <Typography variant="body1" sx={{ fontWeight: 700, color: 'text.primary', whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                {medicalCardData.translatedStatement}
+              </Typography>
+            </Paper>
           </Box>
 
-          {/* 과거력/기저질환 */}
+          {/* 2. 영어 진술문 */}
           <Box sx={{ mb: 3 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, mb: 1 }}>
-              [2] MEDICAL HISTORY / 기저 질환
+            <Typography variant="body2" color="primary.main" sx={{ fontWeight: 800, mb: 1 }}>
+              [2] ENGLISH TRANSLATION / 글로벌 영문 진술문
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, flexWrap: 'wrap' }}>
-              {selectedDiseases.map((d) => (
-                <Chip
-                  key={d}
-                  label={`${d} (EN: ${BASE_DISEASE_TRANSLATIONS[d]?.en || d})`}
-                  color={d === '없음' ? 'default' : 'primary'}
-                  variant="outlined"
-                  sx={{ fontWeight: 600, borderRadius: 2 }}
-                />
-              ))}
-            </Box>
+            <Paper sx={{ p: 2, backgroundColor: '#F4F7FC', border: '1px solid', borderColor: 'primary.light', borderRadius: 2 }}>
+              <Typography variant="body1" sx={{ fontWeight: 600, color: 'text.primary', whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+                {medicalCardData.englishStatement}
+              </Typography>
+            </Paper>
           </Box>
 
-          {/* 알레르기 정보 */}
+          {/* 3. 한국어 요약 */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, mb: 1 }}>
+              [3] KOREAN SUMMARY / 한국어 요약
+            </Typography>
+            <Typography variant="body2" sx={{ pl: 1, fontWeight: 500, color: 'text.primary', whiteSpace: 'pre-line', lineHeight: 1.5 }}>
+              {medicalCardData.koreanStatement}
+            </Typography>
+          </Box>
+
+          {/* 4. 긴급 예방 조치 */}
           <Box sx={{ mb: 4 }}>
             <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700, mb: 1 }}>
-              [3] DRUG ALLERGIES / 약물 알레르기
+              [4] AI EMERGENCY ACTION / AI 권장 비상 대처 요령
             </Typography>
-            <Box sx={{ display: 'flex', flexDirection: 'row', gap: 1, flexWrap: 'wrap' }}>
-              {selectedAllergies.map((a) => (
-                <Chip
-                  key={a}
-                  label={`${a} (EN: ${ALLERGY_TRANSLATIONS[a]?.en || a})`}
-                  color={a === '없음' ? 'default' : 'error'}
-                  variant="outlined"
-                  sx={{ fontWeight: 600, borderRadius: 2 }}
-                />
-              ))}
-            </Box>
+            <Typography variant="body2" sx={{ pl: 1, fontWeight: 500, color: 'text.primary', whiteSpace: 'pre-line', lineHeight: 1.6 }}>
+              {medicalCardData.precautions}
+            </Typography>
           </Box>
 
           <Divider sx={{ mb: 3 }} />
