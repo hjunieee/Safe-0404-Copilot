@@ -216,12 +216,20 @@ export const BrandingIntro: React.FC<BrandingIntroProps> = ({ countryCode }) => 
 
         {/* 알아보기 버튼 */}
         <Chip
-          icon={<InfoOutlinedIcon sx={{ fontSize: '0.9rem !important' }} />}
-          label="알아보기"
+          icon={<InfoOutlinedIcon sx={{ fontSize: '0.9rem !important', color: '#fff !important' }} />}
+          label="0404 AI 알아보기"
           size="small"
-          variant="outlined"
           onClick={() => setView('about')}
-          sx={{ fontWeight: 600, cursor: 'pointer', borderRadius: '20px' }}
+          sx={{
+            fontWeight: 700,
+            cursor: 'pointer',
+            borderRadius: '20px',
+            bgcolor: 'primary.main',
+            color: '#fff',
+            px: 0.5,
+            '&:hover': { bgcolor: 'primary.dark' },
+            '& .MuiChip-icon': { color: '#fff' },
+          }}
         />
       </Box>
 
