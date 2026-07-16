@@ -12,15 +12,14 @@ body {
 #root {
   width: 100%;
   max-width: 480px; /* 모바일 프레임 너비 고정 */
-  height: 100vh; /* 전체 높이 점유 */
-  max-height: 850px; /* 데스크톱 브라우저 내 최대 높이 제한 */
+  min-height: 100vh; /* 고정 높이 제거 → 콘텐츠 높이에 따라 자동 확장 */
   background-color: #F8F9FF; /* M3 기본 배경색 */
   box-shadow: 0px 12px 40px rgba(0, 0, 0, 0.12); /* 고급스러운 디바이스 섀도우 */
   border-radius: 28px; /* 머터리얼 3 모서리 라운딩 */
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  /* overflow: hidden 제거 → 브라우저 네이티브 스크롤 활성화 */
   border: 4px solid #FFFFFF; /* 디바이스 테두리 모사 */
 }
 
@@ -47,9 +46,7 @@ body {
   }
   #root {
     max-width: 100%;
-    height: 100vh;
-    height: 100dvh; /* 동적 뷰포트 높이 대응 */
-    max-height: 100% !important; /* 높이 제한 강제 해제 */
+    min-height: 100dvh; /* 동적 뷰포트 높이 대응 */
     border-radius: 0;
     border: none;
     box-shadow: none;

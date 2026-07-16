@@ -112,10 +112,9 @@ function App() {
       <Box
         sx={{
           flexGrow: 1,
-          overflowY: 'auto',
           px: 2.5,
           pt: 3,
-          pb: 10,
+          pb: 12, /* fixed BottomNavigation 높이만큼 하단 여백 확보 */
         }}
       >
         {tabValue === 0 && currentCountry && (
@@ -144,14 +143,17 @@ function App() {
         }}
         showLabels
         sx={{
-          position: 'absolute',
+          position: 'fixed', /* absolute → fixed: 브라우저 뷰포트 기준으로 하단 고정 */
           bottom: 0,
-          left: 0,
-          right: 0,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '100%',
+          maxWidth: '480px',
           borderTop: '1px solid #E1E2EC',
           height: 68,
           backgroundColor: 'background.paper',
           boxShadow: '0px -2px 10px rgba(0,0,0,0.03)',
+          zIndex: 100,
         }}
       >
         <BottomNavigationAction
