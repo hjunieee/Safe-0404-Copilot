@@ -1,0 +1,57 @@
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #EBF1F9; /* 모던 연회색 데스크톱 배경 */
+  font-family: 'Outfit', 'Noto Sans KR', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  max-width: 480px; /* 모바일 프레임 너비 고정 */
+  height: 100vh; /* 전체 높이 점유 */
+  max-height: 850px; /* 데스크톱 브라우저 내 최대 높이 제한 */
+  background-color: #F8F9FF; /* M3 기본 배경색 */
+  box-shadow: 0px 12px 40px rgba(0, 0, 0, 0.12); /* 고급스러운 디바이스 섀도우 */
+  border-radius: 28px; /* 머터리얼 3 모서리 라운딩 */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border: 4px solid #FFFFFF; /* 디바이스 테두리 모사 */
+}
+
+/* 스크롤바 커스텀 */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #D3E4F9;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #A3B9D9;
+}
+
+/* 태블릿 및 모바일 기기 접속 시 디바이스 프레임 해제 및 100% 풀스크린 렌더링 */
+@media (max-width: 768px) or (pointer: coarse) {
+  body {
+    background-color: #F8F9FF;
+    align-items: flex-start;
+  }
+  #root {
+    max-width: 100%;
+    height: 100vh;
+    height: 100dvh; /* 동적 뷰포트 높이 대응 */
+    max-height: 100% !important; /* 높이 제한 강제 해제 */
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+}
